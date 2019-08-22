@@ -11,7 +11,7 @@ False         Echo          - Echo input data to <RootName>.ech (flag)
 1000000.0     UJacSclFact   - Scaling factor used in Jacobians (-)
 ---------------------- FEATURE SWITCHES AND FLAGS ------------------------------
 1             CompElast     - Compute structural dynamics (switch) {1=ElastoDyn; 2=ElastoDyn + BeamDyn for blades}
-1             CompInflow    - Compute inflow wind velocities (switch) {0=still air; 1=InflowWind; 2=external from OpenFOAM}
+2             CompInflow    - Compute inflow wind velocities (switch) {0=still air; 1=InflowWind; 2=external from OpenFOAM}
 2             CompAero      - Compute aerodynamic loads (switch) {0=None; 1=AeroDyn v14; 2=AeroDyn v15}
 0             CompServo     - Compute control and electrical-drive dynamics (switch) {0=None; 1=ServoDyn}
 0             CompHydro     - Compute hydrodynamic loads (switch) {0=None; 1=HydroDyn}
@@ -24,7 +24,7 @@ False         Echo          - Echo input data to <RootName>.ech (flag)
 "NA"          BDBldFile(2)  - Name of file containing BeamDyn input parameters for blade 2 (quoted string)
 "NA"          BDBldFile(3)  - Name of file containing BeamDyn input parameters for blade 3 (quoted string)
 "data/NREL5MW_IW.dat" InflowFile    - Name of file containing inflow wind input parameters (quoted string)
-"data/NREL5MW_AD15.05.dat" AeroFile      - Name of file containing aerodynamic input parameters (quoted string)
+"data\NREL5MW_AD15.05_Pitch_00.2.dat" AeroFile      - Name of file containing aerodynamic input parameters (quoted string)
 "NA"          ServoFile     - Name of file containing control and electrical-drive input parameters (quoted string)
 "NA"          HydroFile     - Name of file containing hydrodynamic input parameters (quoted string)
 "NA"          SubFile       - Name of file containing sub-structural input parameters (quoted string)

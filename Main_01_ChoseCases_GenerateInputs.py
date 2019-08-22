@@ -5,7 +5,7 @@ import fastlib
 
 
 
-def ParametricCT(CT):
+def ParametricCT(CT,BEM=False):
     # --- Parameters for this script
     ref_dir          = 'OpenFAST_AD/'   # Folder where the fast input files are located (will be copied)
     work_dir         = 'Parametric_Ct_CFD/'     # Output folder (will be created)
@@ -55,6 +55,9 @@ def ParametricPitch(Pitch,BEM):
         p['EDFile|BlPitch(1)']     = pitch
         p['EDFile|BlPitch(2)']     = pitch
         p['EDFile|BlPitch(3)']     = pitch
+        if not BEM:
+            p['FAST|CompInflow']       = 2
+            p['AeroFile|WakeMod']      = 0
         PARAMS.append(p)
     # --- Generating all files in a workdir
     fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file)
