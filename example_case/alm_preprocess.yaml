@@ -13,8 +13,8 @@ nalu_abl_mesh:
   fluid_part_name: fluid
 
   vertices:
-  - [0.0, -252.0, -252.0]
-  - [1260.0, 252.0, 252.0]
+  - [0.0, -504.0, -504.0]
+  - [1260.0, 504.0, 504.0]
 
   mesh_dimensions: [315, 128, 128]
 
@@ -29,4 +29,14 @@ nalu_abl_mesh:
   zmin_boundary_name: lower
 
   zmax_boundary_name: upper
+
+  z_spacing:
+    spacing_type: geometric_stretching
+    stretching_factor: 0.97
+    bidirectional: true
+
+  y_spacing:
+    spacing_type: geometric_stretching
+    stretching_factor: 0.97
+    bidirectional: true
 
