@@ -312,7 +312,7 @@ def copyTree(src, dst):
                 forceMergeFlatDir(s, d)
 
 
-def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_function=None, RemoveAllowed=False, RemoveRefSubFiles=False):
+def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_function=None, RemoveAllowed=False, RemoveRefSubFiles=False, oneSimPerDir=False):
     """ Replace parameters in a fast folder using a list of dictionaries where the keys are for instance:
         'FAST|DT', 'EDFile|GBRatio', 'ServoFile|GenEff'
     """
@@ -320,13 +320,23 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
         return s.split('|')[0]
     def basename(s):
         return os.path.splitext(os.path.basename(s))[0]
-    def rebase(s,sid):
+    def rebase(wd,s,sid):
         split = os.path.splitext(os.path.basename(s))
-        return os.path.join(workdir,split[0]+sid+split[1])
-    def rebase_rel(s,sid):
+        return os.path.join(wd,split[0]+sid+split[1])
+    def rebase_rel(wd,s,sid):
         split = os.path.splitext(s)
-        return os.path.join(workdir,split[0]+sid+split[1])
-    # --- Saafety checks
+        return os.path.join(wd,split[0]+sid+split[1])
+    def get_strID(p) :
+        if name_function is None:
+            if '__name__' in p.keys():
+                strID=p['__name__']
+            else:
+                raise Exception('When calling `templateReplace`, either provide a naming function or profile the key `__name_` in the parameter dictionaries')
+        else:
+            strID =name_function(p)
+        return strID
+
+    # --- Safety checks
     if not os.path.exists(template_dir):
         raise Exception('Template directory does not exist: '+template_dir)
 
@@ -336,15 +346,24 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
     if workdir is None:
         workdir=template_dir+'_Parametric'
 
-    # Copying template folder to workdir
-    if os.path.exists(workdir) and RemoveAllowed:
-        shutil.rmtree(workdir, ignore_errors=False, onerror=handleRemoveReadonlyWin)
-#     distutils.dir_util.copy_tree(template_dir, workdir)
-    #distutils.dir_util.copy_tree(template_dir, workdir)
-    #shutil.copytree(template_dir, workdir, ignore=ignore_patterns('.git'))
-    copyTree(template_dir, workdir)
-    if RemoveAllowed:
-        removeFASTOuputs(workdir)
+    # Params need to be a list
+    if not isinstance(PARAMS,list):
+        PARAMS=[PARAMS]
+
+    if oneSimPerDir:
+        WORKDIRS=[os.path.join(workdir,get_strID(p)) for p in PARAMS]
+    else:
+        WORKDIRS=[workdir]*len(PARAMS)
+        # Copying template folder to workdir
+
+    for wd in list(set(WORKDIRS)):
+        if RemoveAllowed:
+            removeFASTOuputs(wd)
+        if os.path.exists(wd) and RemoveAllowed:
+            shutil.rmtree(wd, ignore_errors=False, onerror=handleRemoveReadonlyWin)
+        copyTree(template_dir, wd)
+        if RemoveAllowed:
+            removeFASTOuputs(wd)
 
     # --- Fast main file use as "master"
     if main_file is None:
@@ -352,17 +371,15 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
         if len(FstFiles)>1:
             print(FstFiles)
             raise Exception('More than one fst file found in template folder, provide `main_file` or ensure there is only one `.fst` file') 
-        main_file=rebase(FstFiles.pop(),'')
-    else:
-        main_file=os.path.join(workdir, os.path.basename(main_file))
+        main_file=FstFiles.pop()
 
-    # Params need to be a list
-    if not isinstance(PARAMS,list):
-        PARAMS=[PARAMS]
 
     fastfiles=[]
     # TODO: Recursive loop splitting at the pipes '|', for now only 1 level supported...
-    for ip,p in enumerate(PARAMS):
+    for ip,(wd,p) in enumerate(zip(WORKDIRS,PARAMS)):
+        # 
+        main_file_new=os.path.join(wd, os.path.basename(main_file))
+
         if '__index__' not in p.keys():
             p['__index__']=ip
         if name_function is None:
@@ -376,9 +393,8 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
         FileTypes = set(list(FileTypes)+['FAST']) # Enforcing FAST in list, so the main fst file is written
 
         # ---Copying main file and reading it
-        #fst_full = rebase(main_file,strID)
-        fst_full = os.path.join(workdir,strID+'.fst')
-        shutil.copyfile(main_file, fst_full )
+        fst_full = os.path.join(wd,strID+'.fst')
+        shutil.copyfile(main_file_new, fst_full )
         Files=dict()
         Files['FAST']=weio.FASTInFile(fst_full)
         # --- Looping through required files and opening them
@@ -388,9 +404,9 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
             if t=='FAST':
                 continue
             org_filename   = Files['FAST'][t].strip('"')
-            org_filename_full =os.path.join(workdir,org_filename)
-            new_filename_full = rebase_rel(org_filename,'_'+strID)
-            new_filename      = os.path.relpath(new_filename_full,workdir).replace('\\','/')
+            org_filename_full =os.path.join(wd, org_filename)
+            new_filename_full = rebase_rel(wd, org_filename,'_'+strID)
+            new_filename      = os.path.relpath(new_filename_full,wd).replace('\\','/')
             shutil.copyfile(org_filename_full, new_filename_full)
             Files['FAST'][t] = '"'+new_filename+'"'
             # Reading files
@@ -409,15 +425,20 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
         fastfiles.append(fst_full)
     # --- Remove extra files at the end
     if RemoveRefSubFiles:
-        FST = weio.FASTInFile(main_file)
-        for t in FileTypes:
-            if t=='FAST':
-                continue
-            filename   = FST[t].strip('"')
-            #fullname   = rebase(filename,'')
-            fullname   = os.path.join(workdir,filename)
-            os.remove(fullname)
-    os.remove(main_file)
+        for wd,p in zip(WORKDIRS,PARAMS):
+            main_file_new=os.path.join(wd, os.path.basename(main_file))
+            FST = weio.FASTInFile(main_file_new)
+            for t in FileTypes:
+                if t=='FAST':
+                    continue
+                filename   = FST[t].strip('"')
+                #fullname   = rebase(filename,'')
+                fullname   = os.path.join(wd,filename)
+                os.remove(fullname)
+
+    for wd,p in zip(WORKDIRS,PARAMS):
+        main_file_new=os.path.join(wd, os.path.basename(main_file))
+        os.remove(main_file_new)
 
     return fastfiles
 

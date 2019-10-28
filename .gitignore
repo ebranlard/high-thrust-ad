@@ -2,3 +2,7 @@
 *.outb
 *.out
 _*
+*.vtk
+*.bak
+*.chkp
+*.exo

@@ -2,6 +2,11 @@ import numpy as np
 import os
 import weio
 import fastlib
+import fileinput
+try:
+    from pybra.clean_exceptions import *
+except:
+    pass
 
 
 
@@ -11,6 +16,7 @@ def ParametricCT(CT,BEM=False):
     work_dir         = 'Parametric_Ct_CFD/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
     FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
+    print('>>> Parametric CT' + work_dir)
     # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
     Tmax   = 600
     BaseDict = {'FAST|TMax': Tmax, 'FAST|DT': 0.01, 'FAST|DT_Out': 0.1}
@@ -24,12 +30,25 @@ def ParametricCT(CT,BEM=False):
         p['AeroFile|PrescribedCt'] = Ct
         PARAMS.append(p)
     # --- Generating all files in a workdir
-    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file)
+    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=True)
 
     # --- Creating a batch script just in case
     fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
     # --- Running the simulations
     #fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
+
+    if not BEM:
+        # --- Replacing in Nalu input file
+        for f in fastfiles:
+            parent   = os.path.dirname(f)
+            basename = os.path.basename(f)
+            nalu_file = os.path.join(parent, 'alm_simulation.yaml')
+            print(nalu_file)
+
+            with fileinput.FileInput(nalu_file, inplace=True, backup='.bak') as file:
+                for line in file:
+                    print(line.replace('XXX.fst' , basename), end='')
+
 
 def ParametricPitch(Pitch,BEM):
     # --- Parameters for this script
@@ -40,6 +59,7 @@ def ParametricPitch(Pitch,BEM):
         work_dir         = 'Parametric_Pitch_CFD/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
     FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
+    print('>>> Parametric Pitch' + work_dir)
 
     # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
     if BEM:
@@ -60,11 +80,11 @@ def ParametricPitch(Pitch,BEM):
             p['AeroFile|WakeMod']      = 0
         PARAMS.append(p)
     # --- Generating all files in a workdir
-    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file)
+    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=True)
 
+    # --- Creating a batch script just in case
+    fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
     if BEM:
-        # --- Creating a batch script just in case
-        fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
         # --- Running the simulations
         fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
 
@@ -74,15 +94,19 @@ def ParametricPitch(Pitch,BEM):
         avg_results = fastlib.averagePostPro(outFiles,avgMethod='constantwindow',avgParam=Tmax/2, ColMap = {'WS_[m/s]':'Wind1VelX_[m/s]'},ColSort='BldPitch1_[deg]')
         avg_results.to_csv(os.path.join(work_dir,'ParametricPitch.csv'),sep='\t',index=False)
         return avg_results
+    else:
+        # --- Replacing in Nalu input file
+        for f in fastfiles:
+            parent   = os.path.dirname(f)
+            basename = os.path.basename(f)
+            nalu_file = os.path.join(parent, 'alm_simulation.yaml')
+            print(nalu_file)
+
+            with fileinput.FileInput(nalu_file, inplace=True, backup='.bak') as file:
+                for line in file:
+                    print(line.replace('XXX.fst' , basename), end='')
 
 if __name__=='__main__':
-    #Lambda = 15
-    #R      = 63.5
-    #U0     = 10
-    #RPM    =  Lambda*U0/R * 60 / (2*np.pi)
-    #print(RPM)
-
-
     df    = weio.read('ParametricStudyPitch.csv').toDataFrame()
     df = df.sort_values('RtAeroCt_[-]')
     ct    = df['RtAeroCt_[-]'].values
@@ -91,11 +115,7 @@ if __name__=='__main__':
     CT=np.arange(0.1,2,0.2)
     PITCH = np.interp(CT,ct,pitch)
 
-    #import matplotlib.pyplot as plt
-    #plt.plot(pitch,ct)
-    #plt.plot(PITCH,CT,'o')
-    #plt.show()
-    ParametricCT(CT)
+    ParametricCT(CT,BEM=False)
     ParametricPitch(PITCH,BEM=False)
 
     #ParametricPitch(PITCH,BEM=True)
