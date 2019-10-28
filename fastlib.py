@@ -390,7 +390,7 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
             org_filename   = Files['FAST'][t].strip('"')
             org_filename_full =os.path.join(workdir,org_filename)
             new_filename_full = rebase_rel(org_filename,'_'+strID)
-            new_filename      = os.path.relpath(new_filename_full,workdir)
+            new_filename      = os.path.relpath(new_filename_full,workdir).replace('\\','/')
             shutil.copyfile(org_filename_full, new_filename_full)
             Files['FAST'][t] = '"'+new_filename+'"'
             # Reading files

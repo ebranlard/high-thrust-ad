@@ -1,7 +1,6 @@
 import os
 import glob
 import pandas as pd
-# import welib
 import fastlib
 import weio
 import numpy as np
@@ -68,18 +67,18 @@ def spanwisePostPro(FST_In,suffix=None):
 
 
 # --- Main Parameters
-# SimDir='OpenFAST_Parametric/'
-# Outdir = './'
-# 
-# fstfiles=glob.glob(SimDir + '*.fst')
-# print(fstfiles)
-# for FST_In in fstfiles:
-#     spanwisePostPro(FST_In)
+SimDir='_ParametricStudy/'
+Outdir = './_PostPro/'
+
+fstfiles=glob.glob(SimDir + '*.fst')
+print(fstfiles)
+for FST_In in fstfiles:
+    spanwisePostPro(FST_In)
 
 
 
 # --- Main Parameters
-FST_In = 'OpenFAST_AD/Main_Onshore_OF2.fst'
-Outdir = './'
-spanwisePostPro(FST_In,'PrescCt')
+# FST_In = 'OpenFAST_AD/Main_Onshore_OF2.fst'
+# Outdir = './'
+# spanwisePostPro(FST_In,'PrescCt')
 
