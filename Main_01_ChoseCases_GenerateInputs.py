@@ -50,7 +50,7 @@ def ParametricCT(CT,BEM=False):
                     print(line.replace('XXX.fst' , basename), end='')
 
 
-def ParametricPitch(Pitch,BEM):
+def ParametricPitch(Pitch,CT,BEM):
     # --- Parameters for this script
     ref_dir          = 'OpenFAST/'   # Folder where the fast input files are located (will be copied)
     if BEM:
@@ -69,9 +69,10 @@ def ParametricPitch(Pitch,BEM):
 
     BaseDict = {'FAST|TMax': Tmax, 'FAST|DT': 0.01, 'FAST|DT_Out': 0.1}
     PARAMS=[]
-    for pitch in Pitch:
+    for pitch,Ct in zip(Pitch,CT):
         p=BaseDict.copy()
-        p['__name__']       = 'Pitch_{:04.1f}'.format(pitch)
+        #p['__name__']       = 'Pitch_{:04.1f}'.format(pitch)
+        p['__name__']       = 'CT_{:03.2f}'.format(Ct)
         p['EDFile|BlPitch(1)']     = pitch
         p['EDFile|BlPitch(2)']     = pitch
         p['EDFile|BlPitch(3)']     = pitch
@@ -116,7 +117,7 @@ if __name__=='__main__':
     PITCH = np.interp(CT,ct,pitch)
 
     ParametricCT(CT,BEM=False)
-    ParametricPitch(PITCH,BEM=False)
+    ParametricPitch(PITCH,CT,BEM=False)
 
     #ParametricPitch(PITCH,BEM=True)
 
