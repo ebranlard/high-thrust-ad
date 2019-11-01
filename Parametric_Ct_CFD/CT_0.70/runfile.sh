@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=alm                # Job name
-#SBATCH --time=24:00:00
+#SBATCH --time=30:00:00
 #SBATCH --nodes=5                              # Number of nodes
 #SBATCH --ntasks-per-node=36                    # Number of processors per node
 #SBATCH --account=wakedynamics                            # Allocation
