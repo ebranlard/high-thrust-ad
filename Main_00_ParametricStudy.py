@@ -24,7 +24,7 @@ def ParametricExample():
     """
     # --- Parameters for this script
     ref_dir          = 'OpenFAST/'   # Folder where the fast input files are located (will be copied)
-    work_dir         = '_ParametricStudy/'     # Output folder (will be created)
+    work_dir         = '_BEM/_ParametricStudy/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
     FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
 

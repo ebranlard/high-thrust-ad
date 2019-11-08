@@ -53,25 +53,23 @@ def ParametricCT(CT,BEM=False):
 def ParametricPitch(Pitch,CT,BEM):
     # --- Parameters for this script
     ref_dir          = 'OpenFAST/'   # Folder where the fast input files are located (will be copied)
-    if BEM:
-        work_dir         = 'Parametric_Pitch_BEM/'     # Output folder (will be created)
-    else:
-        work_dir         = 'Parametric_Pitch_CFD/'     # Output folder (will be created)
+    work_dir         = 'Parametric_Pitch_CFD/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
     FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
-    print('>>> Parametric Pitch' + work_dir)
-
-    # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
+    Tmax             = 600
     if BEM:
         Tmax   = 10
-    else:
-        Tmax   = 600
+        work_dir         = '_BEM/Parametric_Pitch_BEM/'     # Output folder (will be created)
+
+    # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
+    print('>>> Parametric Pitch' + work_dir)
 
     BaseDict = {'FAST|TMax': Tmax, 'FAST|DT': 0.01, 'FAST|DT_Out': 0.1}
     PARAMS=[]
     for pitch,Ct in zip(Pitch,CT):
         p=BaseDict.copy()
         #p['__name__']       = 'Pitch_{:04.1f}'.format(pitch)
+        print('Ct',Ct, 'Pitch',pitch)
         p['__name__']       = 'CT_{:03.2f}'.format(Ct)
         p['EDFile|BlPitch(1)']     = pitch
         p['EDFile|BlPitch(2)']     = pitch
@@ -80,8 +78,11 @@ def ParametricPitch(Pitch,CT,BEM):
             p['FAST|CompInflow']       = 2
             p['AeroFile|WakeMod']      = 0
         PARAMS.append(p)
+
+    oneSimPerDir=not BEM # CFD wants one sim per dir
+
     # --- Generating all files in a workdir
-    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=True)
+    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=oneSimPerDir)
 
     # --- Creating a batch script just in case
     fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
@@ -119,6 +120,6 @@ if __name__=='__main__':
     ParametricCT(CT,BEM=False)
     ParametricPitch(PITCH,CT,BEM=False)
 
-    #ParametricPitch(PITCH,BEM=True)
+#     ParametricPitch(PITCH,CT,BEM=True)
 
 

@@ -1,0 +1,89 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{relsize} % mathsmaller mathlarger
+
+\renewcommand{\d}{\mathrm{d}}
+\newcommand{\dr}{{\d}r}
+\newcommand{\dA}{{\d}A}
+\newcommand{\dQ}{{\d}Q}
+\newcommand{\dP}{{\d}P}
+\newcommand{\dT}{{\d}T}
+\newcommand{\eqdef}{\stackrel{\mathsmaller{\mathsmaller{\mathsmaller{\triangle}}}}{=}} 
+\renewcommand{\v}[1]{\underline{#1}}
+\newcommand{\CTloc}{\ensuremath{C_{t}}}
+\newcommand{\CPloc}{\ensuremath{C_{p}}}
+\newcommand{\CQloc}{\ensuremath{C_{q}}}
+
+
+\begin{document}
+
+\section{Stuff relevant for us for now}
+The actuator disk simulation takes as input the loading on each blade and smears it out onto the disk. The following loading is prescribed on each blade:
+\begin{align}
+\frac{\dT_B(r)}{\dr} = \frac{1}{B}\rho U_0^2 \pi r \,C_t(r) \quad \text{[N/m]}
+      %\label{eq:}
+\end{align}
+where $B$ is the number of blades (3), and $C_t(r)$ is the local thrust coefficient.
+% 
+The total thrust force on the actuator disk is:
+\begin{align}
+    T = \int_0^R B\dT_B = \frac{1}{2} \rho U_0^2 2\pi \int_0^r r C_t(r) \dr
+\end{align}
+The total thrust coefficient is:
+\begin{align}
+C_{T}&\eqdef \frac{T}{\frac{1}{2} \rho \pi R^2 U_0^2}
+= \frac{2}{R^2} \int_0^R  r C_t(r) \dr = 2 \int_0^2 \overline{r} C_t(\overline{r}) {\d}\overline{r}
+% 
+\end{align}
+
+
+\section{Stuff from my book p117}
+
+
+The local thrust force $\dT_{B}$ and torque $\dQ_{B}$ from the section $r$ of the blade $B$ is defined as:
+%
+\begin{align}
+    \dT_{B}(r)&\eqdef \v{dF}_B(r)\cdot \v{e}_z\, \dr  \\ %                = \rho \Gamma_B(r) U_t(r) \\
+    \dQ_{B}(r)&\eqdef \left[ r\v{e}_r\times \v{dF}_B(r) \dr \right] \cdot \v{e}_z %= \rho \Gamma_B(r) U_n(r) r\dr 
+\end{align}
+The term \emph{local} is here used to highlight the fact that these quantities are defined for a given radius, as opposed to integrated quantities. The term \emph{elementary} is also used in this book.
+%
+The local thrust force $\dT(r)$ and torque $\dQ(r)$ on the rotor are obtained by summing the contribution from each blade, i.e. $\dT(r)=\sum_B \dT_B(r)$ and $\dQ(r)=\sum_B \dQ_B(r)$. The elementary power is defined as $\dP=\Omega\,\dQ$. The dimensionless local thrust, torque and power coefficients are defined using the reference speed $U_\text{ref}$ and the area of the elementary annulus $2\pi r \dr$ as follows:
+\begin{align}
+    {\CTloc}(r)\eqdef\frac{\dT(r)}{\frac{1}{2}\rho U_\text{ref}^2 2\pi r \dr}, \quad
+    {\CQloc}(r)\eqdef\frac{\dQ(r)}{\frac{1}{2}\rho U_\text{ref}^2 r 2 \pi r \dr}  ,\quad
+    {\CPloc}(r)\eqdef\frac{\dP(r)}{\frac{1}{2}\rho U_\text{ref}^3 2 \pi r \dr} 
+    \label{eq:CtCqCpDef}
+\end{align}
+The total thrust, torque and power are obtained by integration of the elementary quantities along the span of the blade:
+\begin{alignat}{3}
+    T\eqdef \int_{r_\text{hub}}^R \dT, \quad
+    Q\eqdef \int_{r_\text{hub}}^R \dQ, \quad
+    P\eqdef \int_{r_\text{hub}}^R \dP
+\end{alignat}
+The dimensionless coefficients associated to these integrated quantities are:
+\begin{alignat}{4}
+    C_{T}&\eqdef \frac{T}{\frac{1}{2} \rho A_\text{ref} U_\text{ref}^2}, \quad
+    C_{Q}&\eqdef \frac{Q}{\frac{1}{2} \rho A_\text{ref} U_\text{ref}^2 R},\quad
+    C_{P}&\eqdef \frac{P}{\frac{1}{2} \rho A_\text{ref} U_\text{ref}^3 } 
+    \label{eq:CTCQCPDefBase}
+\end{alignat}
+where $A_\text{ref}$ is commonly chosen as $A_\text{ref}=\pi R^2$ for wind turbines. The swept area $\pi (R^2-r_\text{hub}^2)$ is a valid choice but not recommended since it is not as widely used.
+% 
+The above may be re-written as function of the local coefficients as follows:
+\begin{alignat}{4}
+    C_{T}&\eqdef \frac{2\pi}{A_\text{ref}}\int_{r_\text{hub}}^R r   \CTloc(r) \dr, \quad
+    C_{Q}&\eqdef \frac{2\pi}{A_\text{ref}R}\int_{r_\text{hub}}^R r^2 \CQloc(r) \dr,\quad
+    C_{P}&\eqdef \frac{2\pi}{A_\text{ref}}\int_{r_\text{hub}}^R r   \CPloc(r) \dr 
+    \label{eq:CTCQCPDef}
+\end{alignat}
+It is noted that by definition the following relations always holds:
+\begin{align}
+    \CPloc(r) &\equiv \lambda_r \CQloc(r) \label{eq:GeneralRelationsCpCq}\\
+    C_P       &\equiv \lambda C_Q \label{eq:GeneralRelationsCPCQ}
+\end{align}
+%
+
+
+\end{document}

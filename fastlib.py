@@ -17,7 +17,11 @@ import stat
 try:
     import weio
 except:
-    raise Exception('Fastlib needs the package `weio` to be installed from https://github.com/ebranlard/weio/`')
+    try:
+        import welib.weio as weio
+        print('Using `weio` from `welib`')
+    except:
+        raise Exception('Fastlib needs the package `weio` to be installed from https://github.com/ebranlard/weio/`')
     
 
 
@@ -221,7 +225,29 @@ def ED_BldGag(ED):
     r_gag = r_nodes[ Inodes[:nOuts] -1]
     return r_gag
 
-def AD_BldGag(AD,AD_bld):
+def AD14_BldGag(AD):
+    """ Returns the radial position of AeroDyn 14 blade gages (based on "print" in column 6)
+    INPUTS:
+       - AD: either:
+           - a filename of a AeroDyn input file
+           - an instance of FileCl, as returned by reading the file, AD = weio.read(AD_filename)
+    OUTPUTS:
+       - r_gag: The radial positions of the gages, given from the blade root
+    """
+    if not isinstance(AD,weio.FASTInFile):
+        AD = weio.FASTInFile(AD)
+
+    Nodes=AD['BldAeroNodes']  
+    if Nodes.shape[1]==6:
+       doPrint= np.array([ n.lower().find('p')==0  for n in Nodes[:,5]])
+    else:
+       doPrint=np.array([ True  for n in Nodes[:,0]])
+
+    r_gag = Nodes[doPrint,0].astype(float)
+    IR    = np.arange(1,len(Nodes)+1)[doPrint]
+    return r_gag, IR
+
+def AD_BldGag(AD,AD_bld,chordOut=False):
     """ Returns the radial position of AeroDyn blade gages 
     INPUTS:
        - AD: either:
@@ -235,20 +261,220 @@ def AD_BldGag(AD,AD_bld):
     """
     if not isinstance(AD,weio.FASTInFile):
         AD = weio.FASTInFile(AD)
-    if not isinstance(AD,weio.FASTInFile):
+    if not isinstance(AD_bld,weio.FASTInFile):
         AD_bld = weio.FASTInFile(AD_bld)
-    print(AD_bld.keys())
+    #print(AD_bld.keys())
 
     nOuts=AD['NBlOuts']
     if nOuts<=0:
         return np.array([])
     INodes = np.array(AD['BlOutNd'][:nOuts])
     r_gag = AD_bld['BldAeroNodes'][INodes-1,0]
-    return r_gag
+    if chordOut:
+        chord_gag = AD_bld['BldAeroNodes'][INodes-1,5]
+        return r_gag,chord_gag
+    else:
+        return r_gag
 
 # 
 # 
 # 1, 7, 14, 21, 30, 36, 43, 52, 58 BldGagNd List of blade nodes that have strain gages [1 to BldNodes] (-) [unused if NBlGages=0]
+
+def spanwise(tsAvg,vr_bar,R,postprofile=None):
+    nr=len(vr_bar)
+    Columns     = [('r/R_[-]', vr_bar)]
+    Columns.append(extractSpanTS(tsAvg,nr,'Spn{:d}FLxb1_[kN]'   ,'FLxb1_[kN]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'Spn{:d}MLyb1_[kN-m]' ,'MLxb1_[kN-m]'  ))
+    Columns.append(extractSpanTS(tsAvg,nr,'Spn{:d}MLxb1_[kN-m]' ,'MLyb1_[kN-m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'Spn{:d}MLzb1_[kN-m]' ,'MLzb1_[kN-m]'   ))
+    Columns.append(('r_[m]', vr_bar*R))
+
+    data     = np.column_stack([c for _,c in Columns if c is not None])
+    ColNames = [n for n,_ in Columns if n is not None]
+
+    # --- Export to dataframe and csv
+    if len(ColNames)<=2:
+        print('[WARN] No elastodyn spanwise data found.')
+        return None
+    else:
+        dfRad = pd.DataFrame(data= data, columns = ColNames)
+        if postprofile is not None:
+            dfRad.to_csv(postprofile,sep='\t',index=False)
+    return dfRad
+
+def spanwiseAD(tsAvg,vr_bar,rho,R,nB,chord=None,postprofile=None,IR=None):
+    r=vr_bar*R
+    nr=len(vr_bar)
+    Columns     = [('r/R_[-]', vr_bar)]
+    # --- Extract radial data
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Alpha_[deg]','B1Alpha_[deg]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}AxInd_[-]'  ,'B1AxInd_[-]'  ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}TnInd_[-]'  ,'B1TnInd_[-]'  ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Cl_[-]'     ,'B1Cl_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Cd_[-]'     ,'B1Cd_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Cm_[-]'     ,'B1Cm_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Cx_[-]'     ,'B1Cx_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Cy_[-]'     ,'B1Cy_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Cn_[-]'     ,'B1Cn_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Ct_[-]'     ,'B1Ct_[-]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Re_[-]' ,'B1Re_[-]' ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Vrel_[m/s]' ,'B1Vrel_[m/s]' ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Theta_[deg]','B1Theta_[deg]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Phi_[deg]','B1Phi_[deg]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Curve_[deg]','B1Curve_[deg]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Vindx_[m/s]','B1Vindx_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Vindy_[m/s]','B1Vindy_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Fx_[N/m]'   ,'B1Fx_[N/m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Fy_[N/m]'   ,'B1Fy_[N/m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Fl_[N/m]'   ,'B1Fl_[N/m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Fd_[N/m]'   ,'B1Fd_[N/m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Fn_[N/m]'   ,'B1Fn_[N/m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Ft_[N/m]'   ,'B1Ft_[N/m]'   ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}VUndx_[m/s]','B1VUndx_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}VUndy_[m/s]','B1VUndy_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}VUndz_[m/s]','B1VUndz_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}VDisx_[m/s]','B1VDisx_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}VDisy_[m/s]','B1VDisy_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}VDisz_[m/s]','B1VDisz_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Vx_[m/s]','B1Vx_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Vy_[m/s]','B1Vy_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Vz_[m/s]','B1Vz_[m/s]'))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}DynP_[Pa]' ,'B1DynP_[Pa]' ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}M_[-]' ,'B1M_[-]' ))
+    Columns.append(extractSpanTS(tsAvg,nr,'B1N{:d}Mm_[N-m/m]'   ,'B1Mm_[N-m/m]'   ))
+
+    # --- AD 14
+    Columns.append(extractSpanTS(tsAvg,nr,'Alpha{:02d}_[deg]'    ,'Alpha_[deg]'  ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'DynPres{:02d}_[Pa]'   ,'DynPres_[Pa]' ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'CLift{:02d}_[-]'      ,'CLift_[-]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'CDrag{:02d}_[-]'      ,'CDrag_[-]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'CNorm{:02d}_[-]'      ,'CNorm_[-]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'CTang{:02d}_[-]'      ,'CTang_[-]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'CMomt{:02d}_[-]'      ,'CMomt_[-]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'Pitch{:02d}_[deg]'    ,'Pitch_[deg]'  ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'AxInd{:02d}_[-]'      ,'AxInd_[-]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'TanInd{:02d}_[-]'     ,'TanInd_[-]'   ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'ForcN{:02d}_[N]'      ,'ForcN_[N]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'ForcT{:02d}_[N]'      ,'ForcT_[N]'    ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'Pmomt{:02d}_[N-m]'    ,'Pmomt_[N-N]'  ,  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'ReNum{:02d}_[x10^6]'  ,'ReNum_[x10^6]',  IR=IR))
+    Columns.append(extractSpanTS(tsAvg,nr,'Gamma{:02d}_[m^2/s]'  ,'Gamma_[m^2/s]',  IR=IR))
+
+    # --- Compute additional values (AD15 only)
+    ColNames = [n for n,_ in Columns]
+    iFx=ColNames.index('B1Fx_[N/m]')
+    if iFx>=0:
+        try:
+            Fx = np.array(Columns[iFx][1])
+            U0 = tsAvg['Wind1VelX_[m/s]']
+            Ct=nB*Fx/(0.5 * rho * 2 * U0**2 * np.pi * r)
+            Ct[vr_bar<0.01] = 0
+            Columns.append(('B1Ct_[-]', Ct))
+            CT=2*np.trapz(vr_bar*Ct,vr_bar)
+            Columns.append(('B1CtAvg_[-]', CT*np.ones(r.shape)))
+        except:
+            pass
+    iVrel=ColNames.index('B1Vrel_[m/s]')
+    iCl  =ColNames.index('B1Cl_[-]')
+    if iVrel>=0 and iCl>=0 and chord is not None:
+        try:
+            Vrel = np.array(Columns[iVrel][1])
+            Cl   = np.array(Columns[iCl][1])
+            Columns.append(('B1Gamma_[m^2/s]', 1/2 * chord*  Vrel * Cl))
+        except:
+            pass
+
+    Columns.append(('r_[m]', r))
+
+    data     = np.column_stack([c for _,c in Columns if c is not None])
+    ColNames = [n for n,_ in Columns if n is not None]
+
+    # --- Export to dataframe and csv
+    if len(ColNames)<=2:
+        print('[WARN] No spanwise aero data')
+        return None
+    else:
+        dfRad = pd.DataFrame(data= data, columns = ColNames)
+        if postprofile is not None:
+            dfRad.to_csv(postprofile,sep='\t',index=False)
+    return dfRad
+
+
+
+def spanwisePostPro(FST_In,avgMethod='constantwindow',avgParam=5,out_ext='.outb',postprofile=None,df=None):
+    """
+    Postprocess FAST radial data
+
+    INPUTS:
+        - FST_IN: Fast .fst input file
+        - avgMethod='periods', avgParam=2:  average over 2 last periods, Needs Azimuth sensors!!!
+        - avgMethod='constantwindow', avgParam=5:  average over 5s of simulation
+        - postprofile: outputfile to write radial data
+    """
+    # --- Opens Fast output  and performs averaging
+    if df is None:
+        df    = weio.read(FST_In.replace('.fst',out_ext)).toDataFrame()
+    else:
+        pass
+    # NOTE: spanwise script doest not support duplicate columns
+    df = df.loc[:,~df.columns.duplicated()]
+    dfAvg = averageDF(df,avgMethod=avgMethod ,avgParam=avgParam) # NOTE: average 5 last seconds
+
+    # --- Extract info (e.g. radial positions) from Fast input file
+    fst = weio.FASTInputDeck(FST_In)
+    chord=None
+    if fst.version == 'F7':
+        # --- FAST7
+        if  not hasattr(fst,'AD'):
+            raise Exception('The AeroDyn file couldn''t be found or read, from main file: '+FST_In)
+        r_FST_aero,IR   = AD14_BldGag(fst.AD)
+        R   = fst.fst['TipRad']
+        try:
+            rho = fst.AD['Rho']
+        except:
+            rho = fst.AD['AirDens']
+        r_FST_struct = None
+    else:
+        # --- OpenFAST 2
+        if  not hasattr(fst,'ED'):
+            raise Exception('The Elastodyn file couldn''t be found or read, from main file: '+FST_In)
+        if  not hasattr(fst,'AD'):
+            raise Exception('The AeroDyn file couldn''t be found or read, from main file: '+FST_In)
+
+        if fst.ADversion == 'AD15':
+            if  not hasattr(fst.AD,'Bld1'):
+                raise Exception('The AeroDyn blade file couldn''t be found or read, from main file: '+FST_In)
+            rho        = fst.AD['AirDens']
+            r_FST_aero,chord = AD_BldGag(fst.AD,fst.AD.Bld1, chordOut = True)
+            print(chord)
+            r_FST_aero+= fst.ED['HubRad']
+            IR         = None
+
+        elif fst.ADversion == 'AD14':
+            try:
+                rho = fst.AD['Rho']
+            except:
+                rho = fst.AD['AirDens']
+            r_FST_aero,IR   = AD14_BldGag(fst.AD)
+
+        else:
+            raise Exception('AeroDyn version unknown')
+
+        R   = fst.ED ['TipRad']
+        r_FST_struct = ED_BldGag(fst.ED)
+        #print('r struct:',r_FST_struct)
+        #print('r aero  :',r_FST_aero)
+        #print('IR      :',IR)
+
+        # --- Extract radial data and export to csv if needed
+        dfAeroRad   = spanwiseAD(dfAvg.iloc[0], r_FST_aero/R, rho , R, nB=3, chord=chord, postprofile=postprofile, IR=IR)
+        if r_FST_struct is None:
+            dfStructRad=None
+        else:
+            dfStructRad = spanwise(dfAvg.iloc[0]  , r_FST_struct/R, R=R, postprofile=postprofile)
+
+    return dfStructRad , dfAeroRad
+
 
 
 # --------------------------------------------------------------------------------}
@@ -311,6 +537,108 @@ def copyTree(src, dst):
             else:
                 forceMergeFlatDir(s, d)
 
+
+
+def templateReplaceGeneral(template_dir, PARAMS, workdir=None, main_file=None, name_function=None, RemoveAllowed=False):
+    """ Replace parameters in a fast folder using a list of dictionaries where the keys are for instance:
+        'FAST|DT', 'EDFile|GBRatio', 'ServoFile|GenEff'
+    """
+    def fileID(s):
+        if s.find('|')<=0:
+            return 'ROOT'
+        else:
+            return s.split('|')[0]
+    def basename(s):
+        return os.path.splitext(os.path.basename(s))[0]
+    def rebase(s,sid):
+        split = os.path.splitext(os.path.basename(s))
+        return os.path.join(workdir,split[0]+sid+split[1])
+    def rebase_rel(s,sid):
+        split = os.path.splitext(s)
+        return os.path.join(workdir,split[0]+sid+split[1])
+    # --- Saafety checks
+    if not os.path.exists(template_dir):
+        raise Exception('Template directory does not exist: '+template_dir)
+
+    # Default value of workdir if not provided
+    if template_dir[-1]=='/'  or template_dir[-1]=='\\' :
+        template_dir=template_dir[0:-1]
+    if workdir is None:
+        workdir=template_dir+'_Parametric'
+
+    # Copying template folder to workdir
+    if os.path.exists(workdir) and RemoveAllowed:
+        shutil.rmtree(workdir, ignore_errors=False, onerror=handleRemoveReadonlyWin)
+    copyTree(template_dir, workdir)
+
+    # --- Fast main file use as "master"
+    main_file=os.path.join(workdir, os.path.basename(main_file))
+
+    # Params need to be a list
+    if not isinstance(PARAMS,list):
+        PARAMS=[PARAMS]
+
+    files=[]
+    # TODO: Recursive loop splitting at the pipes '|', for now only 1 level supported...
+    for ip,p in enumerate(PARAMS):
+        if '__index__' not in p.keys():
+            p['__index__']=ip
+        if name_function is None:
+            if '__name__' in p.keys():
+                strID=p['__name__']
+            else:
+                raise Exception('When calling `templateReplace`, either provide a naming function or profile the key `__name_` in the parameter dictionaries')
+        else:
+            strID =name_function(p)
+        FileTypes = set([fileID(k) for k in list(p.keys()) if (k!='__index__' and k!='__name__')])
+        FileTypes = set(list(FileTypes)+['ROOT']) # Enforcing ROOT in list, so the main file is written
+
+        # ---Copying main file and reading it
+        #fst_full = rebase(main_file,strID)
+        ext = os.path.splitext(main_file)[-1]
+        fst_full = os.path.join(workdir,strID+ext)
+        shutil.copyfile(main_file, fst_full )
+        Files=dict()
+        Files['ROOT']=weio.FASTInFile(fst_full)
+        # --- Looping through required files and opening them
+        for t in FileTypes: 
+            # Doing a naive if
+            # The reason is that we want to account for more complex file types in the future
+            if t=='ROOT':
+                continue
+            org_filename      = Files['ROOT'][t].strip('"')
+            org_filename_full = os.path.join(workdir,org_filename)
+            new_filename_full = rebase_rel(org_filename,'_'+strID)
+            new_filename      = os.path.relpath(new_filename_full,workdir)
+#             print('org_filename',org_filename)
+#             print('org_filename',org_filename_full)
+#             print('New_filename',new_filename_full)
+#             print('New_filename',new_filename)
+            shutil.copyfile(org_filename_full, new_filename_full)
+            Files['ROOT'][t] = '"'+new_filename+'"'
+            # Reading files
+            Files[t]=weio.FASTInFile(new_filename_full)
+        # --- Replacing in files
+        for k,v in p.items():
+            if k =='__index__' or k=='__name__':
+                continue
+            sp= k.split('|')
+            kk=sp[0]
+            if len(sp)==1:
+                Files['ROOT'][kk]=v
+            elif len(sp)==2:
+                Files[sp[0]][sp[1]]=v
+            else:
+                raise Exception('Multi-level not supported')
+        # --- Rewritting all files
+        for t in FileTypes:
+            Files[t].write()
+
+        files.append(fst_full)
+    # --- Remove extra files at the end
+    os.remove(main_file)
+
+    return files
 
 def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_function=None, RemoveAllowed=False, RemoveRefSubFiles=False, oneSimPerDir=False):
     """ Replace parameters in a fast folder using a list of dictionaries where the keys are for instance:
@@ -397,6 +725,14 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
         shutil.copyfile(main_file_new, fst_full )
         Files=dict()
         Files['FAST']=weio.FASTInFile(fst_full)
+        # 
+#         fst=weio.FASTInputDeck(main_file)
+#         for k,v in fst.inputfiles.items():
+#             rel = os.path.relpath(v,template_dir)
+#             if rel.find('/')<0 or rel.find('\\')<0:
+#                 print('Copying ',k,rel)
+#                 shutil.copyfile(os.path.join(template_dir,rel), os.path.join(workdir,rel))
+
         # --- Looping through required files and opening them
         for t in FileTypes: 
             # Doing a naive if
@@ -407,6 +743,10 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
             org_filename_full =os.path.join(wd, org_filename)
             new_filename_full = rebase_rel(wd, org_filename,'_'+strID)
             new_filename      = os.path.relpath(new_filename_full,wd).replace('\\','/')
+#             print('org_filename',org_filename)
+#             print('org_filename',org_filename_full)
+#             print('New_filename',new_filename_full)
+#             print('New_filename',new_filename)
             shutil.copyfile(org_filename_full, new_filename_full)
             Files['FAST'][t] = '"'+new_filename+'"'
             # Reading files
@@ -425,7 +765,7 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
         fastfiles.append(fst_full)
     # --- Remove extra files at the end
     if RemoveRefSubFiles:
-        for wd,p in zip(WORKDIRS,PARAMS):
+        for wd in np.unique(WORKDIRS):
             main_file_new=os.path.join(wd, os.path.basename(main_file))
             FST = weio.FASTInFile(main_file_new)
             for t in FileTypes:
@@ -436,7 +776,7 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
                 fullname   = os.path.join(wd,filename)
                 os.remove(fullname)
 
-    for wd,p in zip(WORKDIRS,PARAMS):
+    for wd in np.unique(WORKDIRS):
         main_file_new=os.path.join(wd, os.path.basename(main_file))
         os.remove(main_file_new)
 
@@ -593,7 +933,7 @@ def _zero_crossings(y,x=None,direction=None):
     return xzc, iBef, sign
 
 
-def extractSpanTS(ts, nr, col_pattern, colname):
+def extractSpanTS(ts, nr, col_pattern, colname, IR=None):
     """ Helper function to extract spanwise results, like B1N1Cl B1N2Cl etc. 
 
     Example
@@ -601,15 +941,25 @@ def extractSpanTS(ts, nr, col_pattern, colname):
         colname    : 'B1Cl_[-]'
     """
     Values=np.zeros((nr,1))
-    nCount=0
-    cols   = [col_pattern.format(ir+1) for ir in range(nr)]
-    cols   = [c for c in cols if c in ts.keys() ]
-    #cols   = [c for c in cols if c in df.columns.values() ]
-    if len(cols)==0:
+    if IR is None:
+        cols   = [col_pattern.format(ir+1) for ir in range(nr)]
+    else:
+        cols   = [col_pattern.format(ir) for ir in IR]
+    colsExist  = [c for c in cols if c in ts.keys() ]
+    if len(colsExist)==0:
         return (None,None)
-    if len(cols)<nr:
-        print('[WARN] Not all values found for {}, found {}/{}'.format(colname,nCount,nr))
-    Values = ts[cols].T
+
+    Values = [ts[c] if c in ts.keys() else np.nan for c in cols  ]
+    nMissing = np.sum(np.isnan(Values))
+    #Values = ts[cols].T
+    #nCoun=len(Values)
+    if nMissing==nr:
+        return (None,None)
+    if len(colsExist)<nr:
+        print(Values)
+        print('[WARN] Not all values found for {}, missing {}/{}'.format(colname,nMissing,nr))
+    if len(colsExist)>nr:
+        print('[WARN] More values found for {}, found {}/{}'.format(colname,len(cols),nr))
     return (colname,Values)
 
 def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColSort=None,stats=['mean']):
@@ -623,6 +973,7 @@ def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColS
         return x
     # Before doing the colomn map we store the time
     time = df['Time_[s]'].values
+    timenoNA = time[~np.isnan(time)]
     # Column mapping
     if ColMap is not None:
         ColMapMiss = [v for _,v in ColMap.items() if v not in df.columns.values]
@@ -631,15 +982,15 @@ def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColS
         df.rename(columns=renameCol,inplace=True)
     ## Defining a window for stats (start time and end time)
     if avgMethod.lower()=='constantwindow':
-        tEnd = time[-1]
+        tEnd = timenoNA[-1]
         if avgParam is None:
-            tStart=time[0]
+            tStart=timenoNA[0]
         else:
             tStart =tEnd-avgParam
     elif avgMethod.lower()=='periods':
         # --- Using azimuth to find periods
         if 'Azimuth_[deg]' not in df.columns:
-            raise Exception('The sensor `Azimuth_[deg]` does not appear to be in the output file. Cannot use the averaging method by periods.')
+            raise Exception('The sensor `Azimuth_[deg]` does not appear to be in the output file. You cannot use the averaging method by `periods`, use `constantwindow` instead.')
         # NOTE: potentially we could average over each period and then average
         psi=df['Azimuth_[deg]'].values
         _,iBef = _zero_crossings(psi-psi[-10],direction='up')
@@ -656,7 +1007,7 @@ def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColS
     elif avgMethod.lower()=='periods_omega':
         # --- Using average omega to find periods
         if 'RotSpeed_[rpm]' not in df.columns:
-            raise Exception('The sensor `RotSpeed_[rpm]` does not appear to be in the output file. Cannot use the averaging method by periods_omega.')
+            raise Exception('The sensor `RotSpeed_[rpm]` does not appear to be in the output file. You cannot use the averaging method by `periods_omega`, use `periods` or `constantwindow` instead.')
         Omega=df['RotSpeed_[rpm]'].mean()/60*2*np.pi
         Period = 2*np.pi/Omega 
         if avgParam is None:
@@ -675,7 +1026,7 @@ def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColS
         df=df[ColKeepSafe]
     if tStart<time[0]:
         print('[WARN] Simulation time ({}) too short compared to required averaging window ({})!'.format(tEnd-time[0],tStart-tEnd))
-    IWindow    = np.where((time>=tStart) & (time<=tEnd))[0]
+    IWindow    = np.where((time>=tStart) & (time<=tEnd) & (~np.isnan(time)))[0]
     iEnd   = IWindow[-1]
     iStart = IWindow[0]
     ## Absolute and relative differences at window extremities
