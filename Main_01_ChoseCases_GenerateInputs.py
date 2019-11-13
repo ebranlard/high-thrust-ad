@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import os
 import weio
@@ -45,9 +46,11 @@ def ParametricCT(CT,BEM=False):
             nalu_file = os.path.join(parent, 'alm_simulation.yaml')
             print(nalu_file)
 
-            with fileinput.FileInput(nalu_file, inplace=True, backup='.bak') as file:
-                for line in file:
-                    print(line.replace('XXX.fst' , basename), end='')
+            # Python 2/3 compatible, otherwise use "with"
+            file = fileinput.FileInput(nalu_file, inplace=True, backup='.bak')
+            for line in file:
+                print(line.replace('XXX.fst' , basename), end='')
+            file.close()
 
 
 def ParametricPitch(Pitch,CT,BEM):
@@ -103,9 +106,10 @@ def ParametricPitch(Pitch,CT,BEM):
             nalu_file = os.path.join(parent, 'alm_simulation.yaml')
             print(nalu_file)
 
-            with fileinput.FileInput(nalu_file, inplace=True, backup='.bak') as file:
-                for line in file:
-                    print(line.replace('XXX.fst' , basename), end='')
+            file= fileinput.FileInput(nalu_file, inplace=True, backup='.bak')
+            for line in file:
+                print(line.replace('XXX.fst' , basename), end='')
+            file.close()
 
 if __name__=='__main__':
     df    = weio.read('ParametricStudyPitch.csv').toDataFrame()

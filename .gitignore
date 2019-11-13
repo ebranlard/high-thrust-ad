@@ -21,4 +21,4 @@ core*
 *.avi
 *.png
 *.pvsm
-
+*.pyc
