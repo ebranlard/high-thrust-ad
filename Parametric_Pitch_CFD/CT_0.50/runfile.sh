@@ -17,4 +17,4 @@ srun -n 1 -c 1 --cpu_bind=cores /projects/hfm/shreyas/exawind/install/intel/wind
 srun -n 1 -c 1 --cpu_bind=cores /projects/hfm/shreyas/exawind/install/intel/wind-utils/bin/abl_mesh -i sampling_mesh.yaml &> log.sampling_mesh
 
 ############### NEW VERSION OF NALU!!!!!!!!!!!!!!
-srun -n 180 -c 1 --cpu_bind=cores /home/lmartine/openfast_emmanuel/nalu-wind/build/naluX -i alm_simulation.yaml &> log
+srun -n 180 -c 1 --cpu_bind=cores /home/lmartine/nalu-wind/build/naluX -i alm_simulation.yaml &> log

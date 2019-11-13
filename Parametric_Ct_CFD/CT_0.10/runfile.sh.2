@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=alm                # Job name
-#SBATCH --time=30:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=5                              # Number of nodes
 #SBATCH --ntasks-per-node=36                    # Number of processors per node
 #SBATCH --account=wakedynamics                            # Allocation
@@ -17,4 +17,4 @@ srun -n 1 -c 1 --cpu_bind=cores /projects/hfm/shreyas/exawind/install/intel/wind
 srun -n 1 -c 1 --cpu_bind=cores /projects/hfm/shreyas/exawind/install/intel/wind-utils/bin/abl_mesh -i sampling_mesh.yaml &> log.sampling_mesh
 
 ############### NEW VERSION OF NALU!!!!!!!!!!!!!!
-srun -n 180 -c 1 --cpu_bind=cores /home/lmartine/nalu-wind/build/naluX -i alm_simulation.yaml &> log
+srun -n 72 -c 1 --cpu_bind=cores /home/lmartine/openfast_emmanuel/nalu-wind/build/naluX -i alm_simulation.yaml &> log
