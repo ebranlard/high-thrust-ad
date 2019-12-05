@@ -177,9 +177,9 @@ def run_fast(input_file, fastExe=None, wait=True, ShowOutputs=False, ShowCommand
 def writeBatch(batchfile, fastfiles, fastExe=None):
     if fastExe is None:
         fastExe=FAST_EXE
-    with open(batchfile,'w') as f:
+    with open(batchfile,'w') as fid:
         for l in [fastExe + ' '+ os.path.basename(f) for f in fastfiles]:
-            f.write("%s\n" % l)
+            fid.write("%s\n" % l)
 
 
 def removeFASTOuputs(workdir):
