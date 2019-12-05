@@ -151,9 +151,21 @@ def run_cmd(input_file, exe, wait=True, ShowOutputs=False, ShowCommand=True):
     return p
 # --- END cmd.py
 
-def run_fastfiles(fastfiles, fastExe=None, parallel=True, ShowOutputs=True, nCores=None, ShowCommand=True):
+def run_fastfiles(fastfiles, fastExe=None, parallel=True, ShowOutputs=True, nCores=None, ShowCommand=True, ReRun=True):
     if fastExe is None:
         fastExe=FAST_EXE
+    if not ReRun:
+        # Figure out which files exist
+        newfiles=[]
+        for f in fastfiles:
+            base=os.path.splitext(f)[0]
+            if os.path.exists(base+'.outb') or os.path.exists(base+'.out'):
+                print('>>> Skipping existing simulation for: ',f)
+                pass
+            else:
+                newfiles.append(f)
+        fastfiles=newfiles
+
     return run_cmds(fastfiles, fastExe, parallel=parallel, ShowOutputs=ShowOutputs, nCores=nCores, ShowCommand=ShowCommand)
 
 def run_fast(input_file, fastExe=None, wait=True, ShowOutputs=False, ShowCommand=True):
@@ -203,6 +215,27 @@ def ED_BldStations(ED):
     r_nodes      = bld_fract*(ED['TipRad']-ED['HubRad']) + ED['HubRad']
     return bld_fract, r_nodes
 
+def ED_TwrStations(ED):
+    """ Returns ElastoDyn Tower Station positions, useful to know where the outputs are.
+    INPUTS:
+       - ED: either:
+           - a filename of a ElastoDyn input file
+           - an instance of FileCl, as returned by reading the file, ED = weio.read(ED_filename)
+
+    OUTPUTS:
+        - r_fract: fraction of the towet length were stations are defined
+        - h_nodes: height from the *ground* of the stations  (not from the Tower base)
+    """
+    if not isinstance(ED,weio.FASTInFile):
+        ED = weio.FASTInFile(ED)
+
+    nTwrNodes = ED['TwrNodes']
+    twr_fract    = np.arange(1./nTwrNodes/2., 1, 1./nTwrNodes)
+    h_nodes      = twr_fract*(ED['TowerHt']-ED['TowerBsHt']) + ED['TowerBsHt']
+    return twr_fract, h_nodes
+
+
+
 def ED_BldGag(ED):
     """ Returns the radial position of ElastoDyn blade gages 
     INPUTS:
@@ -224,6 +257,29 @@ def ED_BldGag(ED):
         Inodes = np.array([ED['BldGagNd']])
     r_gag = r_nodes[ Inodes[:nOuts] -1]
     return r_gag
+
+def ED_TwrGag(ED):
+    """ Returns the heights of ElastoDyn blade gages 
+    INPUTS:
+       - ED: either:
+           - a filename of a ElastoDyn input file
+           - an instance of FileCl, as returned by reading the file, ED = weio.read(ED_filename)
+    OUTPUTS:
+       - h_gag: The heights of the gages, given from the ground height (tower base + TowerBsHt)
+    """
+    if not isinstance(ED,weio.FASTInFile):
+        ED = weio.FASTInFile(ED)
+    _,h_nodes= ED_TwrStations(ED)
+    nOuts = ED['NTwGages']
+    if nOuts<=0:
+        return np.array([])
+    if type(ED['TwrGagNd']) is list:
+        Inodes = np.asarray(ED['TwrGagNd'])
+    else:
+        Inodes = np.array([ED['TwrGagNd']])
+    h_gag = h_nodes[ Inodes[:nOuts] -1]
+    return h_gag
+
 
 def AD14_BldGag(AD):
     """ Returns the radial position of AeroDyn 14 blade gages (based on "print" in column 6)
@@ -538,7 +594,6 @@ def copyTree(src, dst):
                 forceMergeFlatDir(s, d)
 
 
-
 def templateReplaceGeneral(template_dir, PARAMS, workdir=None, main_file=None, name_function=None, RemoveAllowed=False):
     """ Replace parameters in a fast folder using a list of dictionaries where the keys are for instance:
         'FAST|DT', 'EDFile|GBRatio', 'ServoFile|GenEff'
@@ -683,7 +738,6 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
     else:
         WORKDIRS=[workdir]*len(PARAMS)
         # Copying template folder to workdir
-
     for wd in list(set(WORKDIRS)):
         if RemoveAllowed:
             removeFASTOuputs(wd)
@@ -700,6 +754,10 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
             print(FstFiles)
             raise Exception('More than one fst file found in template folder, provide `main_file` or ensure there is only one `.fst` file') 
         main_file=FstFiles.pop()
+    # if the user provided a full path to the main file, we scrap the directory. TODO, should be cleaner
+    if len(os.path.dirname(main_file))>0:
+        main_file=os.path.basename(main_file)
+
 
 
     fastfiles=[]
@@ -788,7 +846,8 @@ def templateReplace(template_dir, PARAMS, workdir=None, main_file=None, name_fun
 # --------------------------------------------------------------------------------{
 def paramsSteadyAero(p=dict()):
     p['AeroFile|AFAeroMod']=1 # remove dynamic effects dynamic
-    #p['AeroFile|TwrPotent']=0 # remove tower shadow
+    p['AeroFile|WakeMod']=1 # remove dynamic inflow dynamic
+    p['AeroFile|TwrPotent']=0 # remove tower shadow
     return p
 
 def paramsNoGen(p=dict()):
@@ -994,7 +1053,15 @@ def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColS
         # NOTE: potentially we could average over each period and then average
         psi=df['Azimuth_[deg]'].values
         _,iBef = _zero_crossings(psi-psi[-10],direction='up')
-        tEnd = time[iBef[-1]]
+        if len(iBef)==0:
+            _,iBef = _zero_crossings(psi-180,direction='up')
+        if len(iBef)==0:
+            print('[WARN] Not able to find a zero crossing!')
+            tEnd = time[-1]
+            iBef=[0]
+        else:
+            tEnd = time[iBef[-1]]
+
         if avgParam is None:
             tStart=time[iBef[0]]
         else:
@@ -1002,8 +1069,11 @@ def averageDF(df,avgMethod='periods',avgParam=None,ColMap=None,ColKeep=None,ColS
             if len(iBef)-1<avgParam:
                 print('[WARN] Not enough periods found ({}) compared to number requested to average ({})!'.format(len(iBef)-1,avgParam))
                 avgParam=len(iBef)-1
-               
-            tStart=time[iBef[-1-avgParam]]
+            if avgParam==0:
+                tStart = time[0]
+                tEnd   = time[-1]
+            else:
+                tStart=time[iBef[-1-avgParam]]
     elif avgMethod.lower()=='periods_omega':
         # --- Using average omega to find periods
         if 'RotSpeed_[rpm]' not in df.columns:
@@ -1091,6 +1161,7 @@ def averagePostPro(outFiles,avgMethod='periods',avgParam=None,ColMap=None,ColKee
 # --------------------------------------------------------------------------------{
 def CPCT_LambdaPitch(refdir,main_fastfile,Lambda=None,Pitch=np.linspace(-10,40,5),WS=None,Omega=None, # operating conditions
           TMax=20,bStiff=True,bNoGen=True,bSteadyAero=True, # simulation options
+          ReRun=True, 
           fastExe=None,ShowOutputs=True,nCores=4): # execution options
     """ Computes CP and CT as function of tip speed ratio (lambda) and pitch.
     There are two main ways to define the inputs:
@@ -1099,6 +1170,10 @@ def CPCT_LambdaPitch(refdir,main_fastfile,Lambda=None,Pitch=np.linspace(-10,40,5
     """
 
     WS_default=5 # If user does not provide a wind speed vector, wind speed used
+
+    # if the user provided a full path to the main file, we scrap the directory. TODO, should be cleaner
+    if len(os.path.dirname(main_fastfile))>0:
+        main_fastfile=os.path.basename(main_fastfile)
 
     # --- Reading main fast file to get rotor radius 
     fst = weio.FASTInFile(os.path.join(refdir,main_fastfile))
@@ -1145,11 +1220,12 @@ def CPCT_LambdaPitch(refdir,main_fastfile,Lambda=None,Pitch=np.linspace(-10,40,5
     # --- Generating all files in a workdir
     workdir = refdir.strip('/').strip('\\')+'_CPLambdaPitch'
     print('>>> Generating inputs files in {}'.format(workdir))
-    fastFiles=templateReplace(refdir,PARAMS,workdir=workdir,name_function=naming,RemoveRefSubFiles=True,RemoveAllowed=True,main_file=main_fastfile)
+    RemoveAllowed=ReRun # If the user want to rerun, we can remove, otherwise we keep existing simulations
+    fastFiles=templateReplace(refdir,PARAMS,workdir=workdir,name_function=naming,RemoveRefSubFiles=True,RemoveAllowed=RemoveAllowed,main_file=main_fastfile)
 
     # --- Running fast simulations
     print('>>> Running {} simulations...'.format(len(fastFiles)))
-    run_fastfiles(fastFiles, ShowOutputs=ShowOutputs, fastExe=fastExe, nCores=nCores)
+    run_fastfiles(fastFiles, ShowOutputs=ShowOutputs, fastExe=fastExe, nCores=nCores, ReRun=ReRun)
 
     # --- Postpro - Computing averages at the end of the simluation
     print('>>> Postprocessing...')

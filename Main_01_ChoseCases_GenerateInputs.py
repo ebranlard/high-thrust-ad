@@ -108,18 +108,88 @@ def ParametricPitch(Pitch,CT,BEM):
                 for line in file:
                     print(line.replace('XXX.fst' , basename), end='')
 
+def ParametricOmega(Omega,CT,BEM):
+    # --- Parameters for this script
+    ref_dir          = 'OpenFAST/'   # Folder where the fast input files are located (will be copied)
+    work_dir         = 'Parametric_RPM_CFD/'     # Output folder (will be created)
+    main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
+    FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
+    Tmax             = 600
+    if BEM:
+        Tmax   = 10
+        work_dir         = '_BEM/Parametric_RPM_BEM/'     # Output folder (will be created)
+
+    # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
+    print('>>> Parametric RPM' + work_dir)
+
+    BaseDict = {'FAST|TMax': Tmax, 'FAST|DT': 0.01, 'FAST|DT_Out': 0.1}
+    PARAMS=[]
+    for rpm,Ct in zip(RPM,CT):
+        p=BaseDict.copy()
+        #p['__name__']       = 'Pitch_{:04.1f}'.format(pitch)
+        print('Ct',Ct, 'RPM',rpm)
+        p['__name__']       = 'CT_{:03.2f}'.format(Ct)
+        p['EDFile|RotSpeed'] = rpm
+        if not BEM:
+            p['FAST|CompInflow']       = 2
+            p['AeroFile|WakeMod']      = 0
+        PARAMS.append(p)
+
+    oneSimPerDir=not BEM # CFD wants one sim per dir
+
+    # --- Generating all files in a workdir
+    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=oneSimPerDir)
+
+    # --- Creating a batch script just in case
+    fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
+    if BEM:
+        # --- Running the simulations
+        fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
+
+        # --- Simple Postprocessing
+        outFiles = [os.path.splitext(f)[0]+'.outb' for f in fastfiles]
+        #avg_results = fastlib.averagePostPro(outFiles,avgMethod='periods',avgParam=1, ColMap = {'WS_[m/s]':'Wind1VelX_[m/s]'},ColSort='WS_[m/s]')
+        avg_results = fastlib.averagePostPro(outFiles,avgMethod='constantwindow',avgParam=Tmax/2, ColMap = {'WS_[m/s]':'Wind1VelX_[m/s]'},ColSort='RotSpeed_[rpm]')
+        avg_results.to_csv(os.path.join(work_dir,'ParametricRPM.csv'),sep='\t',index=False)
+        return avg_results
+    else:
+        # --- Replacing in Nalu input file
+        for f in fastfiles:
+            parent   = os.path.dirname(f)
+            basename = os.path.basename(f)
+            nalu_file = os.path.join(parent, 'alm_simulation.yaml')
+            print(nalu_file)
+
+            with fileinput.FileInput(nalu_file, inplace=True, backup='.bak') as file:
+                for line in file:
+                    print(line.replace('XXX.fst' , basename), end='')
+
+
+
 if __name__=='__main__':
+    CT   = np.arange(0.1,2,0.2)
+
+    # --- Parametric rpm
+    df    = weio.read('OMEGA_CT.csv').toDataFrame()
+    df = df.sort_values('RtAeroCt_[-]')
+    ct    = df['RtAeroCt_[-]'].values
+    rpm = df['RotSpeed_[rpm]'].values
+
+    RPM = np.interp(CT,ct,rpm)
+    ParametricOmega(RPM,CT,BEM=False)
+
+    
+    # --- Parametric pitch
     df    = weio.read('ParametricStudyPitch.csv').toDataFrame()
     df = df.sort_values('RtAeroCt_[-]')
     ct    = df['RtAeroCt_[-]'].values
     pitch = df['BldPitch1_[deg]'].values
-
-    CT=np.arange(0.1,2,0.2)
     PITCH = np.interp(CT,ct,pitch)
 
-    ParametricCT(CT,BEM=False)
-    ParametricPitch(PITCH,CT,BEM=False)
+    #ParametricPitch(PITCH,CT,BEM=False)
+    #     ParametricPitch(PITCH,CT,BEM=True)
 
-#     ParametricPitch(PITCH,CT,BEM=True)
+    # --- Parametric CT
+    #ParametricCT(CT,BEM=False)
 
 
