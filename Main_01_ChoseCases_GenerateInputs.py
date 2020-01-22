@@ -190,8 +190,8 @@ if __name__=='__main__':
     pitch = df['BldPitch1_[deg]'].values
     PITCH = np.interp(CT,ct,pitch)
 
-    #ParametricPitch(PITCH,CT,BEM=False)
-    #     ParametricPitch(PITCH,CT,BEM=True)
+    ParametricPitch(PITCH,CT,BEM=False)
+    #   ParametricPitch(PITCH,CT,BEM=True)
 
     # --- Parametric CT
     #ParametricCT(CT,BEM=False)
