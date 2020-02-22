@@ -194,6 +194,6 @@ if __name__=='__main__':
     #   ParametricPitch(PITCH,CT,BEM=True)
 
     # --- Parametric CT
-    #ParametricCT(CT,BEM=False)
+    ParametricCT(CT,BEM=False)
 
 

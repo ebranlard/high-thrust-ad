@@ -3,13 +3,13 @@ nalu_abl_mesh:
   output_db: sampling.exo
   spec_type: bounding_box
   vertices:
-  - - 0.0
+  - - -384.0
     - 0.0
     - -256.0
-  - - 1000.0
+  - - 1512.0
     - 0.0
     - 256.0
   mesh_dimensions:
-  - 100
+  - 300
   - 1
-  - 100
+  - 160

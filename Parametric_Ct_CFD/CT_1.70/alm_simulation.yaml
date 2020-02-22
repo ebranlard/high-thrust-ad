@@ -99,10 +99,15 @@ realms:
     name: myOptions
     use_consolidated_solver_algorithm: yes
 
+    turbulence_model: smagorinsky  
+
     options:
 
+    - turbulence_model_constants:
+        cmuCs: 0.08
+
     - hybrid_factor:
-        velocity: 1.0
+        velocity: 0.1
 
     - limiter:
         pressure: no
@@ -125,6 +130,8 @@ realms:
       target_name: fluid
       reynolds_averaged_variables:
       - velocity
+      - pressure
+      - vorticity
       compute_reynolds_stress: yes
       compute_vorticity: yes
 
@@ -149,9 +156,9 @@ realms:
       nacelle_cd: 0
       nacelle_area: 8.0
       air_density: 1.
-      epsilon: [10.0, 10.0, 10.0]
-      turbine_base_pos: [378.0, 0.0, -89.56]
-      turbine_hub_pos: [378.0, 0.0, 0.0]
+      epsilon: [8.0, 8.0, 8.0]
+      turbine_base_pos: [0.0, 0.0, -89.56]
+      turbine_hub_pos: [0.0, 0.0, 0.0]
       restart_filename: restart_file
       fast_input_filename:  CT_1.70.fst
       turb_id: 1
@@ -164,6 +171,8 @@ realms:
     output_variables:
     - velocity
     - velocity_ra_one
+    - pressure_ra_one
+    - vorticity_ra_one
     - vorticity
     - pressure
     - actuator_source
@@ -195,10 +204,11 @@ realms:
       field_type: node_rank
   output:
     output_data_base_name: plane_sampling/sampling.exo
-    output_frequency: 5
+    output_frequency: 10
     output_node_set: no
     output_variables:
     - velocity
+    - pressure
     - vorticity
 
 - name: samplingMeanRealm
@@ -219,6 +229,14 @@ realms:
       target_name: fluid
       field_size: 3
       field_type: node_rank
+    - field_name: vorticity_ra_one
+      target_name: fluid
+      field_size: 3
+      field_type: node_rank
+    - field_name: pressure_ra_one
+      target_name: fluid
+      field_size: 1
+      field_type: node_rank
   output:
     output_data_base_name: plane_sampling_mean/sampling.exo
     output_frequency: 100
@@ -226,7 +244,9 @@ realms:
     output_variables:
     - velocity
     - velocity_ra_one
+    - pressure_ra_one
     - vorticity
+    - vorticity_ra_one
 
 
 transfers:
@@ -250,8 +270,10 @@ transfers:
   search_tolerance: 5.0e-4
   transfer_variables:
   - [velocity_ra_one, velocity_ra_one]
+  - [pressure_ra_one, pressure_ra_one]
   - [velocity, velocity]
   - [vorticity, vorticity]
+  - [vorticity_ra_one, vorticity_ra_one]
 
 
 Time_Integrators:

@@ -13,7 +13,7 @@ False         CavitCheck    - Perform cavitation check? (flag)
 ======  Actuator disk  options  =====================================================================
 True          PrescribedAD  
 0.30000000000000004 PrescribedCt  
-0.1           SpanFracFullAD 
+0.6           SpanFracFullAD 
 10            FreeStream    
 ======  Environmental Conditions  ===================================================================
 1.225         AirDens       - Air density (kg/m^3)

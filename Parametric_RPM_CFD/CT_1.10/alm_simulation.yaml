@@ -99,10 +99,15 @@ realms:
     name: myOptions
     use_consolidated_solver_algorithm: yes
 
+    turbulence_model: smagorinsky  
+
     options:
 
+    - turbulence_model_constants:
+        cmuCs: 0.08
+
     - hybrid_factor:
-        velocity: 1.0
+        velocity: 0.1
 
     - limiter:
         pressure: no
@@ -151,9 +156,9 @@ realms:
       nacelle_cd: 0
       nacelle_area: 8.0
       air_density: 1.
-      epsilon: [10.0, 10.0, 10.0]
-      turbine_base_pos: [378.0, 0.0, -89.56]
-      turbine_hub_pos: [378.0, 0.0, 0.0]
+      epsilon: [8.0, 8.0, 8.0]
+      turbine_base_pos: [0.0, 0.0, -89.56]
+      turbine_hub_pos: [0.0, 0.0, 0.0]
       restart_filename: restart_file
       fast_input_filename:  CT_1.10.fst
       turb_id: 1
@@ -234,7 +239,7 @@ realms:
       field_type: node_rank
   output:
     output_data_base_name: plane_sampling_mean/sampling.exo
-    output_frequency: 10
+    output_frequency: 100
     output_node_set: no
     output_variables:
     - velocity
