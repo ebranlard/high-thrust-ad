@@ -1,0 +1,10 @@
+cd CT_0.10 && sbatch runfile.sh && cd ..
+cd CT_0.30 && sbatch runfile.sh && cd ..
+cd CT_0.50 && sbatch runfile.sh && cd ..
+cd CT_0.70 && sbatch runfile.sh && cd ..
+cd CT_0.90 && sbatch runfile.sh && cd ..
+cd CT_1.10 && sbatch runfile.sh && cd ..
+cd CT_1.30 && sbatch runfile.sh && cd ..
+cd CT_1.50 && sbatch runfile.sh && cd ..
+cd CT_1.70 && sbatch runfile.sh && cd ..
+cd CT_1.90 && sbatch runfile.sh && cd ..
