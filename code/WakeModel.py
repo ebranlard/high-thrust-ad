@@ -13,15 +13,16 @@ except:
         pass
 # --- Parameters
 R               = 1       # Rotor radius
-nRings          = 50     # Number of rings used over the vorticity surface region before the semi-inf cylinder
+nRings          = 100     # Number of rings used over the vorticity surface region before the semi-inf cylinder
 includeCylinder = True    # Include semi-infinite cylinder
+scaleIntensity  = False    # Include semi-infinite cylinder
 # includeCylinder = False    # Include semi-infinite cylinder
 U0              = 10      # Freestream
-a               = 0.5     # Axial induction
+a               = 0.4     # Axial induction
 gamma           = -2*a*U0 # intensity of the vorticity surface [m/s]
 n_rcp           = 50      # Number of control points in radial direction
 n_xcp           = 100     # Number of control points in axial direction
-x_max           = 50*R    # Max point after which the surface should be in equilibrium
+x_max           = 30*R    # Max point after which the surface should be in equilibrium
 
 # --- Control points used for velocity field
 # rcp = np.linspace(0,5*R, n_rcp)
@@ -36,22 +37,22 @@ dR_diff = 0.1*R
 dt = R/U0
 
 vR_surf=[]
-# vMethods = ['iteration' , 'optimize']
-vMethods = ['iteration']
-vMethods = ['optimize']
+vMethods = ['iteration' , 'optimize']
+# vMethods = ['iteration']
+# vMethods = ['optimize']
 
 for method in vMethods:
     x_surf      = np.linspace(0, x_max, nRings)
-    R_surf_init = np.zeros(x_surf.shape) + R 
+    R_surf_init = np.zeros(x_surf.shape) + R
     R_surf      = R_surf_init
 
     def epsilon(R_surf):
         # Compute velocity at the surface points
-#         ur_low, ux_low, _ = surface_u(x_surf, R_surf, gamma, Xcp = x_surf, Rcp = R_surf-dR_diff, nRings=nRings, includeCylinder=includeCylinder) 
-#         ur_hig, ux_hig, _ = surface_u(x_surf, R_surf, gamma, Xcp = x_surf, Rcp = R_surf+dR_diff, nRings=nRings, includeCylinder=includeCylinder) 
+#         ur_low, ux_low, _ = surface_u(x_surf, R_surf, gamma, Xcp = x_surf, Rcp = R_surf-dR_diff, nRings=nRings, includeCylinder=includeCylinder scaleIntensity=scaleIntensity) 
+#         ur_hig, ux_hig, _ = surface_u(x_surf, R_surf, gamma, Xcp = x_surf, Rcp = R_surf+dR_diff, nRings=nRings, includeCylinder=includeCylinder scaleIntensity=scaleIntensity) 
 #         ur = (ur_low+ur_hig)/2
 #         ux = (ux_low+ux_hig)/2
-        ur, ux, geom = surface_u(x_surf, R_surf, gamma, Xcp = x_surf, Rcp = R_surf        , nRings=nRings, includeCylinder=includeCylinder) 
+        ur, ux, geom = surface_u(x_surf, R_surf, gamma, Xcp = x_surf, Rcp = R_surf        , nRings=nRings, includeCylinder=includeCylinder, scaleIntensity= scaleIntensity) 
         ux += U0 # Adding free stream velocity
 
         dR     = np.concatenate(([0], si.cumtrapz(ur/ux, x_surf) ))
@@ -61,7 +62,7 @@ for method in vMethods:
         # Constraints
         #     R_new[0]       = R       # Constraint
         #     R_new[R_new<0] = 0
-        iFW            = np.argmin(np.abs(x_surf-x_max*0.95))
+        iFW            = np.argmin(np.abs(x_surf-x_max*0.85))
         R_new[iFW:]    = R_new[iFW]
 
         residual =  (R_surf-R_new)/R
@@ -73,7 +74,7 @@ for method in vMethods:
         return residual
 
     # --- Iteration method
-    fig,ax = plt.subplots(1,1)
+    #fig,ax = plt.subplots(1,1)
     if method =='iteration':
         iteration =0
         residual_scalar=np.inf
@@ -106,10 +107,11 @@ if a<0.5:
 
 fig,ax = plt.subplots(1,1)
 for R_surf,method in zip(vR_surf,vMethods):
-    ax.plot(x_surf,R_surf   ,label = method)
-# ax.plot(x_surf,R_surf_th,label = 'Theory'          )
-# ax.set_xlabel('')
-# ax.set_ylabel('')
+    ax.plot(x_surf/R,R_surf/R   ,label = method)
+if a<0.5:
+    ax.plot(x_surf/R,R_surf_th/R,label = 'Theory'          )
+ax.set_xlabel('x/R [-]')
+ax.set_ylabel('R/R0 [-]')
 ax.legend()
 
 # # --- Plotting velocity field

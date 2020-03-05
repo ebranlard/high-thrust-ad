@@ -7,7 +7,7 @@ from InducedVelocities import *
 # --------------------------------------------------------------------------------}
 # --- Main function
 # --------------------------------------------------------------------------------{
-def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True):
+def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True, scaleIntensity=False):
     """ 
     Computes the induced velocity field by a vorticity surface of constant intensity
 
@@ -44,8 +44,11 @@ def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True)
         if i_ring==0:
             Gamma_ring_scaled=Gamma_ring/2 # first ring represent half a ring..
         else:
-            Gamma_ring_scaled   = Gamma_ring  * R_rings[0]/R_ring  # TODO insert scaling here
-#             Gamma_ring_scaled   = Gamma_ring   # TODO insert scaling here
+            if scaleIntensity:
+                Gamma_ring_scaled   = Gamma_ring  * R_rings[0]/R_ring  # TODO insert scaling here
+            else:
+                Gamma_ring_scaled   = Gamma_ring   # TODO insert scaling here
+
         epsilon_ring_scaled = epsilon_ring # TODO insert epsilon hack here
 
         ur, ux =  ring_u_polar(Rcp, Xcp, Gamma=Gamma_ring_scaled, r0=R_ring, z0=x_ring, epsilon=epsilon_ring_scaled, reg_method='Saffman')
@@ -54,7 +57,10 @@ def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True)
 
     # --- Cylinder induced velocity 
     if includeCylinder:
-        gamma_cyl = gamma * R_rings[0]/R_rings[-1] # scaling of gamma
+        if scaleIntensity:
+            gamma_cyl = gamma * R_rings[0]/R_rings[-1] # scaling of gamma # <<<<<<<<<<<<< TODO TODO THIS MIGHT BE WRONG
+        else:
+            gamma_cyl = gamma
         ur_cyl, ux_cyl = vc_tang_u(Rcp, Rcp*0, Xcp-x_cyl, gamma_t=gamma_cyl, R=R_cyl,polar_out=True)
 
     geom = (x_rings, R_rings, x_cyl, R_cyl)
