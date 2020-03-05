@@ -40,14 +40,17 @@ def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True,
 
     # --- Induced velocity from all rings
     ur_rings, ux_rings = np.zeros(Xcp.shape), np.zeros(Xcp.shape)
+    vGamma=[]
     for i_ring, (x_ring, R_ring) in enumerate(zip(x_rings, R_rings)):
         if i_ring==0:
             Gamma_ring_scaled=Gamma_ring/2 # first ring represent half a ring..
         else:
             if scaleIntensity:
-                Gamma_ring_scaled   = Gamma_ring  * R_rings[0]/R_ring  # TODO insert scaling here
+#                 Gamma_ring_scaled   = Gamma_ring  * R_rings[0]/R_ring  # TODO insert scaling here
+                Gamma_ring_scaled   = Gamma_ring  * np.exp( - 0.1*x_ring)
             else:
                 Gamma_ring_scaled   = Gamma_ring   # TODO insert scaling here
+        vGamma.append(Gamma_ring_scaled)
 
         epsilon_ring_scaled = epsilon_ring # TODO insert epsilon hack here
 
@@ -56,14 +59,11 @@ def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True,
         ux_rings += ux
 
     # --- Cylinder induced velocity 
+    gamma_cyl = vGamma[-1]/dx_rings
     if includeCylinder:
-        if scaleIntensity:
-            gamma_cyl = gamma * R_rings[0]/R_rings[-1] # scaling of gamma # <<<<<<<<<<<<< TODO TODO THIS MIGHT BE WRONG
-        else:
-            gamma_cyl = gamma
         ur_cyl, ux_cyl = vc_tang_u(Rcp, Rcp*0, Xcp-x_cyl, gamma_t=gamma_cyl, R=R_cyl,polar_out=True)
 
-    geom = (x_rings, R_rings, x_cyl, R_cyl)
+    geom = (x_rings, R_rings, x_cyl, R_cyl, vGamma, gamma_cyl)
 
     # --- Total velocity
     if includeCylinder:
@@ -118,7 +118,7 @@ if __name__=='__main__':
     # --- Velocity on a grid of points for plotting
     Rcp, Xcp = np.meshgrid(rcp,xcp)
     ur, ux, geom = surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings = nRings, includeCylinder=includeCylinder)
-    x_rings, R_rings, x_cyl, R_cyl = geom
+    x_rings, R_rings, x_cyl, R_cyl, vGamma, gamma_cyl = geom
     ux += U0 # Adding free stream velocity
 
 
