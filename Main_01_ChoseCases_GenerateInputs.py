@@ -31,10 +31,10 @@ def ParametricCT(CT,BEM=False):
         p['AeroFile|PrescribedCt'] = Ct
         PARAMS.append(p)
     # --- Generating all files in a workdir
-    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=True)
+    fastfiles=fastlib.templateReplace(PARAMS,ref_dir,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=True)
 
     # --- Creating a batch script just in case
-    fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
+    #fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
     # --- Running the simulations
     #fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
 
@@ -85,10 +85,10 @@ def ParametricPitch(Pitch,CT,BEM):
     oneSimPerDir=not BEM # CFD wants one sim per dir
 
     # --- Generating all files in a workdir
-    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=oneSimPerDir)
+    fastfiles=fastlib.templateReplace(PARAMS,ref_dir,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=oneSimPerDir)
 
     # --- Creating a batch script just in case
-    fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
+    #fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
     if BEM:
         # --- Running the simulations
         fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
@@ -142,10 +142,10 @@ def ParametricOmega(Omega,CT,BEM):
     oneSimPerDir=not BEM # CFD wants one sim per dir
 
     # --- Generating all files in a workdir
-    fastfiles=fastlib.templateReplace(ref_dir,PARAMS,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=oneSimPerDir)
+    fastfiles=fastlib.templateReplace(PARAMS,ref_dir,workdir=work_dir,RemoveRefSubFiles=True,main_file=main_file, oneSimPerDir=oneSimPerDir)
 
     # --- Creating a batch script just in case
-    fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
+    #fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
     if BEM:
         # --- Running the simulations
         fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
