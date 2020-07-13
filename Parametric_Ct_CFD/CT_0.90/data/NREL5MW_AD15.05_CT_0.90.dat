@@ -12,7 +12,7 @@ False         FrozenWake    - Assume frozen wake during linearization? (flag) [u
 False         CavitCheck    - Perform cavitation check? (flag)
 ======  Actuator disk  options  =====================================================================
 True          PrescribedAD  
-0.9000000000000001 PrescribedCt  
+1.0080000000000002 PrescribedCt  
 0.6           SpanFracFullAD 
 10            FreeStream    
 ======  Environmental Conditions  ===================================================================
