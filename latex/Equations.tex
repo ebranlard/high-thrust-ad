@@ -33,8 +33,24 @@ The total thrust force on the actuator disk is:
 The total thrust coefficient is:
 \begin{align}
 C_{T}&\eqdef \frac{T}{\frac{1}{2} \rho \pi R^2 U_0^2}
-= \frac{2}{R^2} \int_0^R  r C_t(r) \dr = 2 \int_0^2 \overline{r} C_t(\overline{r}) {\d}\overline{r}
+= \frac{2}{R^2} \int_0^R  r C_t(r) \dr = 2 \int_0^1 \overline{r} C_t(\overline{r}) {\d}\overline{r}
 % 
+\end{align}
+
+\begin{align}
+C_{T} = 2\int_0^1 \overline{r} C_t(\overline{r}) {\d}\overline{r}
+ = 2 C_{T,0}\left[ \int_0^{r_1} \overline{r} \frac{\overline{r}}{r_1}   {\d}\overline{r}
+ +\int_{r_1}^{1} \overline{r} 1  {\d}\overline{r} \right] 
+ = 2 C_{T,0}\left[1/2-\frac{r_1^2}{2}+\frac{r_1^2}{3} \right]
+% 
+\end{align}
+\begin{align}
+ \int_0^1 \overline{r} {\d}\overline{r}
+ =1/2
+\end{align}
+\begin{align}
+Ratio =  1-r_1^2\left(\frac{2}{3}-1\right)
+      =  1+\frac{r_1^2}{3}
 \end{align}
 
 

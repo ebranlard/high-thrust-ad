@@ -11,22 +11,29 @@ except:
 
 
 
-def ParametricCT(CT,BEM=False):
+def ParametricCT(CT,CTname,BEM=False):
     # --- Parameters for this script
     ref_dir          = 'OpenFAST_AD/'   # Folder where the fast input files are located (will be copied)
-    work_dir         = 'Parametric_Ct_CFD/'     # Output folder (will be created)
+    if BEM:
+        work_dir         = 'Parametric_Ct_BEM/'     # Output folder (will be created)
+    else:
+        work_dir         = 'Parametric_Ct_CFD/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
-    FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
+    FAST_EXE         = 'openfast_x64s_AD.exe' # Location of a FAST exe (and dll)
     print('>>> Parametric CT' + work_dir)
     # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
     Tmax   = 600
     BaseDict = {'FAST|TMax': Tmax, 'FAST|DT': 0.01, 'FAST|DT_Out': 0.1}
     PARAMS=[]
-    for Ct in CT:
+    for Ct,Ctname in zip(CT,CTname):
         p=BaseDict.copy()
-        p['__name__']       = 'CT_{:03.2f}'.format(Ct)
-        p['FAST|CompInflow']       = 2
-        p['AeroFile|WakeMod']      = 0
+        p['__name__']       = 'CT_{:03.2f}'.format(Ctname)
+        if BEM:
+            p['FAST|CompInflow']       = 1
+            p['AeroFile|WakeMod']      = 0
+        else:
+            p['FAST|CompInflow']       = 2
+            p['AeroFile|WakeMod']      = 0
         p['AeroFile|PrescribedAD'] = True
         p['AeroFile|PrescribedCt'] = Ct
         PARAMS.append(p)
@@ -36,7 +43,8 @@ def ParametricCT(CT,BEM=False):
     # --- Creating a batch script just in case
     #fastlib.writeBatch(os.path.join(work_dir,'_RUN_ALL.bat'),fastfiles,fastExe=FAST_EXE)
     # --- Running the simulations
-    #fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
+    if BEM:
+        fastlib.run_fastfiles(fastfiles,fastExe=FAST_EXE,parallel=True,ShowOutputs=False,nCores=2)
 
     if not BEM:
         # --- Replacing in Nalu input file
@@ -194,6 +202,8 @@ if __name__=='__main__':
     #   ParametricPitch(PITCH,CT,BEM=True)
 
     # --- Parametric CT
-    ParametricCT(CT,BEM=False)
+    CT_for_AD=CT*(1+0.6**2/3)
+    ParametricCT(CT_for_AD, CT, BEM=False)
+    #ParametricCT(CT_for_AD, CT, BEM=True)
 
 
