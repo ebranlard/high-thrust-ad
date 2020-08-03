@@ -179,7 +179,7 @@ def ParametricOmega(Omega,CT,BEM):
 
 
 if __name__=='__main__':
-    CT   = np.arange(0.1,2,0.2)
+    CT   = np.arange(0.1,2,0.1)
 
     # --- Parametric rpm
     df    = weio.read('OMEGA_CT.csv').toDataFrame()

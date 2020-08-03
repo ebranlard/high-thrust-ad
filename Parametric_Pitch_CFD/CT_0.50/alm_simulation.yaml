@@ -137,7 +137,8 @@ realms:
 
   actuator:
     #type: ActLineFAST
-    type: ActDiskFAST
+    #type: ActDiskFAST
+    type: ActDiskFASTNGP
     search_method: boost_rtree
     search_target_part: fluid
 
@@ -151,7 +152,7 @@ realms:
     n_every_checkpoint: 1000
 
     Turbine0:
-      num_force_pts_blade: 63
+      num_force_pts_blade: 41
       num_force_pts_tower: 20
       nacelle_cd: 0
       nacelle_area: 8.0
