@@ -22,7 +22,7 @@ def ParametricCT(CT,CTname,BEM=False):
     FAST_EXE         = 'openfast_x64s_AD.exe' # Location of a FAST exe (and dll)
     print('>>> Parametric CT' + work_dir)
     # --- Defining the parametric study  (list of dictionnaries with keys as FAST parameters)
-    Tmax   = 600
+    Tmax   = 1000
     BaseDict = {'FAST|TMax': Tmax, 'FAST|DT': 0.01, 'FAST|DT_Out': 0.1}
     PARAMS=[]
     for Ct,Ctname in zip(CT,CTname):
@@ -67,7 +67,7 @@ def ParametricPitch(Pitch,CT,BEM):
     work_dir         = 'Parametric_Pitch_CFD/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
     FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
-    Tmax             = 600
+    Tmax             = 1000
     if BEM:
         Tmax   = 10
         work_dir         = '_BEM/Parametric_Pitch_BEM/'     # Output folder (will be created)
@@ -126,7 +126,7 @@ def ParametricOmega(Omega,CT,BEM):
     work_dir         = 'Parametric_RPM_CFD/'     # Output folder (will be created)
     main_file        = 'Main_Onshore_OF2.fst'  # Main file in ref_dir, used as a template
     FAST_EXE         = 'OpenFAST2_x64s_ebra.exe' # Location of a FAST exe (and dll)
-    Tmax             = 600
+    Tmax             = 1000
     if BEM:
         Tmax   = 10
         work_dir         = '_BEM/Parametric_RPM_BEM/'     # Output folder (will be created)
@@ -179,7 +179,7 @@ def ParametricOmega(Omega,CT,BEM):
 
 
 if __name__=='__main__':
-    CT   = np.arange(0.1,2,0.2)
+    CT   = np.arange(0.1,2,0.1)
 
     # --- Parametric rpm
     df    = weio.read('OMEGA_CT.csv').toDataFrame()

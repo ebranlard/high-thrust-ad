@@ -13,8 +13,8 @@ source $HOME/.bash_profile
 nalu_env intel
 
 
-srun -n 1 -c 1 --cpu_bind=cores /projects/hfm/shreyas/exawind/install/intel/wind-utils/bin/abl_mesh -i alm_preprocess.yaml &> log.mesh
-srun -n 1 -c 1 --cpu_bind=cores /projects/hfm/shreyas/exawind/install/intel/wind-utils/bin/abl_mesh -i sampling_mesh.yaml &> log.sampling_mesh
+srun -n 1 -c 1 --cpu_bind=cores /home/lmartine/wind-utils/build/src/mesh/abl_mesh -i alm_preprocess.yaml &> log.mesh
+srun -n 1 -c 1 --cpu_bind=cores /home/lmartine/wind-utils/build/src/mesh/abl_mesh -i sampling_mesh.yaml &> log.sampling_mesh
 
 ############### NEW VERSION OF NALU!!!!!!!!!!!!!!
 srun -n 180 -c 1 --cpu_bind=cores /home/lmartine/nalu-wind/build/naluX -i alm_simulation.yaml &> log
