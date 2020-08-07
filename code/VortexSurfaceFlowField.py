@@ -7,7 +7,7 @@ from InducedVelocities import *
 # --------------------------------------------------------------------------------}
 # --- Main function
 # --------------------------------------------------------------------------------{
-def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True, scaleIntensity=False):
+def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True, scaleIntensity=False, EddyVisc=0.1):
     """ 
     Computes the induced velocity field by a vorticity surface of constant intensity
 
@@ -47,7 +47,7 @@ def surface_u(x_surf, R_surf, gamma, Xcp, Rcp, nRings =50, includeCylinder=True,
         else:
             if scaleIntensity:
 #                 Gamma_ring_scaled   = Gamma_ring  * R_rings[0]/R_ring  # TODO insert scaling here
-                Gamma_ring_scaled   = Gamma_ring  * np.exp( - 0.1*x_ring)
+                Gamma_ring_scaled   = Gamma_ring  * np.exp( - EddyVisc*x_ring)
             else:
                 Gamma_ring_scaled   = Gamma_ring   # TODO insert scaling here
         vGamma.append(Gamma_ring_scaled)
