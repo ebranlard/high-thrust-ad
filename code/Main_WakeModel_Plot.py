@@ -32,8 +32,8 @@ dt = R/U0
 vCT   = [0.1  ,0.5  ,0.8  ,1.1  ,1.5  ,1.5  ,1.7]
 vEddy = [0.000,0.000,0.001,0.100,0.100,0.400,0.8]
 
-vCT   = [1.3 , 1.0 , 0.7   ]
-vEddy = [0.30, 0.10, 0.0001]
+vCT   = [1.3 , 1.0 , 0.7    , 1.5 ]
+vEddy = [0.30, 0.10, 0.0001,  0.5]
 
 # vCT   = [0.1, 0.5]
 # vEddy = [0.000, 0.000]
@@ -88,13 +88,13 @@ for i,(CT,a,Eddy) in enumerate(zip(vCT,va,vEddy)):
     nRings=len(x_surf)
     Rcp, Xcp = np.meshgrid(rcp,xcp)
     Rcp_abs = np.abs(Rcp)
-    ur, ux, geom = surface_u(x_surf, R_surf, gamma, Xcp, Rcp_abs, nRings = nRings, includeCylinder=includeCylinder, EddyVisc= Eddy)
+    ur, ux, geom = surface_u(x_surf, vR_surf[i], gamma, Xcp, Rcp_abs, nRings = nRings, includeCylinder=includeCylinder, EddyVisc= Eddy)
     x_rings, R_rings, x_cyl, R_cyl, vGamma, gamma_cyl = geom
     ux += U0 # Adding free stream velocity
     ur[Rcp<0] *=-1
 
     # Save it
-    np.savez('CT{:.2f}.dat'.format(CT), x_surf=x_surf, R_surf=R_surf, ux=ux, ur=ur, Rcp=Rcp, Xcp=Xcp, rcp=rcp, xcp=xcp)
+    np.savez('CT{:.2f}.dat'.format(CT), x_surf=x_surf, R_surf=vR_surf[i], ux=ux, ur=ur, Rcp=Rcp, Xcp=Xcp, rcp=rcp, xcp=xcp)
 
 
 
